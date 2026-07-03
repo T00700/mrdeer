@@ -14,8 +14,8 @@
 <!-- ... existing code ... -->
 
 <!-- Deleted:企鹅交流群&nbsp;&nbsp;<a target="_blank" href="https://qm.qq.com/cgi-bin/qm/qr?k=eZkxI5CjWQVdW1qdmIxREidMyDQPfU-I&jump_from=webapi&authKey=MDsOsr7yFYYoqbEhSqnzJ0tA4ShjQzXk+AQEA25r3tf/5FJmUTYkILIWmQ/aK6Qf"><img border="0" src="//pub.idqqimg.com/wpa/images/group.png" alt="反馈2群" title="反馈2群"></a> -->
-&nbsp;&nbsp;&nbsp;电报频道&nbsp;&nbsp;<a href="https://t.me/mrdeer7"><img alt="Telegram" src="https://img.shields.io/badge/chat-telegram-blue.svg?logo=telegram&style=flat-square"/></a> 
-&nbsp;&nbsp;&nbsp;交流群&nbsp;&nbsp;[![Telegram](https://img.shields.io/static/v1?label=Telegram&message=Chat&color=0088cc)](https://t.me/mrdeer77)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://t.me/mrdeer7"><img alt="Telegram" src="https://img.shields.io/badge/chat-telegram-blue.svg?logo=telegram&style=flat-square"/></a> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[![Telegram](https://img.shields.io/static/v1?label=Telegram&message=Chat&color=0088cc)](https://t.me/mrdeer77)
 
 <!-- ... existing code ... -->
 
@@ -25,7 +25,9 @@
 
 - **2026-06-22** 新增 [NodeSeek 论坛签到](./nodeseek_signin.py)，支持多账号、自动查询近30天签到统计
 - **2026-06-22** 新增 [花木仓每日签到](./huamucang_checkin.py)，支持 Cookie/Token/用户名密码三种认证方式
-- **2026-06-21** 新增 ikuuu 机场签到脚本
+- **2026-07-03** 更新 [ikuuu 签到脚本](./ikuuu_checkin.py)，改用 Cookie 模式
+- **2026-07-03** 新增 [anyrouter 签到脚本](./anyrouter_checkin.py)，支持多账号签到
+
 
 <!-- ... existing code ... -->
 

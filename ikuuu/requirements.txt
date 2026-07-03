@@ -1,4 +1,4 @@
-httpx>=0.28.1
-curl_cffi>=0.15.0
-requests>=2.34.2
-pycryptodome>=3.23.0
+# ikuuu 签到脚本 (Cookie 模式)
+# 仅需 requests 库
+
+requests>=2.31.0

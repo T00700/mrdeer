@@ -6,13 +6,6 @@
 #
 # Copyright (c) deer. All rights reserved.
 #
-# 转载要求：
-#   任何形式的转载、分发、二次开发，都必须完整保留以下版权信息，
-#   不得修改或删除本声明的任何内容，且必须明确标注原作者及原出处。
-#
-#   作者: deer
-#   官方地址: https://github.com/deerwan
-#   来源项目: ikuuu-checkin
 # =============================================================================
 import random
 import hashlib
