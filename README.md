@@ -42,8 +42,7 @@ ql repo https://github.com/deerwan/ql.git "" "Backup" "" "" "js|sh|py"
 ![Ashutosh's github activity graph](https://github-readme-activity-graph.vercel.app/graph?username=deerwan&theme=high-contrast)
 
 
-![tip](https://badgen.net/badge/php/8.1/orange?icon=php)
 
-![tip](https://badgen.net/badge/java/19/orange?icon=java)
+![tip](https://badgen.net/badge/javascript/19/orange?icon=javascript)
 
 ![tip](https://badgen.net/badge/python/3.1.6/green?icon=packagephobia)
