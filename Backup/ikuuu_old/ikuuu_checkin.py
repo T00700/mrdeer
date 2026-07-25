@@ -1,304 +1,194 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # =============================================================================
-# ikuuu.win 青龙面板签到脚本
+# ikuuu.win 青龙面板签到脚本 (Cookie 模式)
 # =============================================================================
-# Author: deer
-# GitHub: https://github.com/deerwan
+# 使用 Cookie 直接签到，无需验证码
 #
-# Copyright (c) deer. All rights reserved.
-#
-# 免责声明：
-#   本项目仅供学习交流使用，请勿用于商业用途。
-#   使用者需自行遵守 ikuuu.win 的服务条款及相关法律法规。
+# 环境变量: IKUUU_COOKIE (Cookie 字符串，多账号用换行分隔)
 # =============================================================================
-#
-# 环境变量: IKUUU_ACCOUNTS (格式: email1:password1,email2:password2)
-# 支持多账号，每个账号独立签到
 
 import os
 import sys
 import time
 import random
-import json
 import requests
-import httpx
-from pathlib import Path
 
 # ==================== 配置 ====================
-LOGIN_URL = "https://ikuuu.win/auth/login"
-CHECKIN_URL = "https://ikuuu.win/user/checkin"
-CAPTCHA_ID = "cc96d05ba8b60f9112f76e18526fcb73"
+BASE_URL = "https://ikuuu.win"
+CHECKIN_URL = f"{BASE_URL}/user/checkin"
+USER_URL = f"{BASE_URL}/user"
 
-# 从环境变量读取账号
-def load_accounts():
-    """从环境变量加载账号信息"""
-    accounts_env = os.getenv("IKUUU_ACCOUNTS", "")
-    if not accounts_env:
-        print("❌ 未找到 IKUUU_ACCOUNTS 环境变量")
-        print("📝 格式: email1:password1,email2:password2")
+
+def load_cookies():
+    """从环境变量加载 Cookie，支持多账号（换行分隔）"""
+    cookie_str = os.getenv("IKUUU_COOKIE", "")
+    
+    if not cookie_str:
+        print("❌ 未找到 IKUUU_COOKIE 环境变量")
+        print("📝 获取方法：浏览器登录 ikuuu → F12 → Application → Cookies → ikuuu.win")
+        print("📝 复制 Name 和 Value，格式: email=xxx; expire_in=xxx; ip=xxx; key=xxx; uid=xxx")
         sys.exit(1)
     
     accounts = []
-    for account_str in accounts_env.split(","):
-        if ":" not in account_str:
+    for i, line in enumerate(cookie_str.strip().split("\n"), 1):
+        line = line.strip()
+        if not line:
             continue
-        email, password = account_str.split(":", 1)
         accounts.append({
-            "email": email.strip(),
-            "password": password.strip()
+            "index": i,
+            "cookie": line
         })
     
     if not accounts:
-        print("❌ 没有有效的账号配置")
+        print("❌ 没有有效的 Cookie 配置")
         sys.exit(1)
     
     return accounts
 
 
-# ==================== 极验 V4 验证码 ====================
-def random_callback():
-    """生成随机回调函数名"""
-    return f"geetest_{int(random.random() * 10000) + int(time.time() * 1000)}"
+def parse_cookie(cookie_str: str) -> dict:
+    """将 Cookie 字符串解析为 dict"""
+    cookies = {}
+    if not cookie_str:
+        return cookies
+    for item in cookie_str.split(';'):
+        item = item.strip()
+        if '=' in item:
+            k, v = item.split('=', 1)
+            cookies[k.strip()] = v.strip()
+    return cookies
 
 
-def sleep_random(min_ms=500, max_ms=1500):
-    """随机延迟"""
-    time.sleep(random.randint(min_ms, max_ms) / 1000)
-
-
-def solve_captcha():
-    """
-    解决极验 V4 验证码，返回验证结果
-    """
-    from uuid import uuid4
-    
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    })
-    
-    try:
-        for attempt in range(10):
-            sleep_random(800, 1500)
-            
-            callback = random_callback()
-            challenge = str(uuid4())
-            
-            resp = session.get(
-                "https://gcaptcha4.geevisit.com/load",
-                params={
-                    "captcha_id": CAPTCHA_ID,
-                    "challenge": challenge,
-                    "client_type": "web",
-                    "lang": "zh-cn",
-                    "callback": callback,
-                },
-            )
-            
-            # 解析 JSONP 响应
-            jsonp_data = resp.text.split(f"{callback}(", 1)[1].rstrip(")")
-            data = json.loads(jsonp_data)["data"]
-            
-            lot_number = data["lot_number"]
-            
-            sleep_random(2000, 4000)
-            
-            pow_detail = data["pow_detail"]
-            pt = data.get("pt", "1")
-            
-            # 导入 signer 模块
-            from signer import Signer, lotParser
-            
-            base = {
-                **Signer.generate_pow(
-                    lot_number,
-                    CAPTCHA_ID,
-                    pow_detail["hashfunc"],
-                    pow_detail["version"],
-                    pow_detail["bits"],
-                    pow_detail["datetime"],
-                    "",
-                ),
-                **lotParser.get_dict(lot_number),
-                "biht": "1426265548",
-                "device_id": "",
-                "em": {
-                    "cp": 0,
-                    "ek": "11",
-                    "nt": 0,
-                    "ph": 0,
-                    "sc": 0,
-                    "si": 0,
-                    "wd": 1,
-                },
-                "gee_guard": {
-                    "roe": {
-                        "auh": "3",
-                        "aup": "3",
-                        "cdc": "3",
-                        "egp": "3",
-                        "res": "3",
-                        "rew": "3",
-                        "sep": "3",
-                        "snh": "3",
-                    }
-                },
-                "ep": "123",
-                "geetest": "captcha",
-                "lang": "zh",
-                "lot_number": lot_number,
-                "passtime": random.randint(3000, 5000),
-            }
-            
-            w = Signer.encrypt_w(json.dumps(base), pt)
-            
-            callback = random_callback()
-            resp = session.get(
-                "https://gcaptcha4.geevisit.com/verify",
-                params={
-                    "callback": callback,
-                    "captcha_id": CAPTCHA_ID,
-                    "client_type": "web",
-                    "lot_number": lot_number,
-                    "payload": data["payload"],
-                    "process_token": data["process_token"],
-                    "payload_protocol": "1",
-                    "pt": pt,
-                    "w": w,
-                },
-            )
-            
-            result = json.loads(resp.text.split(f"{callback}(", 1)[1].rstrip(")"))
-            
-            if result.get("status") == "success":
-                result_data = result.get("data", {})
-                if "seccode" in result_data:
-                    return result_data
-        
-        return None
-    finally:
-        session.close()
-
-
-# ==================== 登录 ====================
-def login(email, password):
-    """
-    登录 ikuuu.win
-    返回 cookies 字典
-    """
-    print(f"🔐 [{email}] 正在登录...")
-    
-    captcha_result = solve_captcha()
-    if not captcha_result:
-        print(f"❌ [{email}] 验证码解决失败")
-        return None
-    
-    seccode = captcha_result["seccode"]
-    
-    with httpx.Client(follow_redirects=True, timeout=60) as client:
-        resp = client.post(
-            LOGIN_URL,
-            data={
-                "host": "ikuuu.win",
-                "email": email,
-                "passwd": password,
-                "code": "",
-                "remember_me": "on",
-                "pageLoadedAt": str(int(time.time() * 1000)),
-                "captcha_result[lot_number]": captcha_result["lot_number"],
-                "captcha_result[captcha_output]": seccode["captcha_output"],
-                "captcha_result[pass_token]": seccode["pass_token"],
-                "captcha_result[gen_time]": seccode["gen_time"],
-            },
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        )
-        
-        result = resp.json()
-        if result.get("ret") == 1:
-            cookies = {}
-            for k, v in resp.cookies.items():
-                cookies[k] = v
-            print(f"✅ [{email}] 登录成功")
-            return cookies
+def mask_email(cookie_dict: dict) -> str:
+    """脱敏显示 email"""
+    email = cookie_dict.get('email', 'unknown')
+    if '@' in email:
+        parts = email.split('@')
+        if len(parts[0]) <= 2:
+            masked = parts[0]
         else:
-            print(f"❌ [{email}] 登录失败: {result.get('msg', '未知错误')}")
-            return None
+            masked = parts[0][0] + '*' * (len(parts[0]) - 2) + parts[0][-1]
+        return f"{masked}@{parts[1]}"
+    return email[:10] + '...' if len(email) > 10 else email
 
 
-# ==================== 签到 ====================
-def checkin(cookies):
-    """
-    执行签到
-    返回 (success, msg)
-    """
+def validate_cookie(session: requests.Session) -> tuple:
+    """验证 Cookie 是否有效"""
+    try:
+        resp = session.get(USER_URL, timeout=15, allow_redirects=False)
+        
+        # 重定向到登录页 = Cookie 失效
+        if resp.status_code in (302, 301):
+            location = resp.headers.get('Location', '')
+            if 'login' in location.lower():
+                return False, "Cookie 已失效（重定向到登录页）"
+        
+        # 检查页面内容
+        if resp.status_code == 200:
+            text_lower = resp.text.lower()
+            if 'cloudflare' in text_lower and 'just a moment' in text_lower:
+                return False, "被 Cloudflare 拦截"
+            if 'login' in text_lower and '<form' in text_lower:
+                return False, "Cookie 已失效（页面为登录表单）"
+            return True, "有效"
+        
+        return False, f"HTTP {resp.status_code}"
+    except requests.exceptions.Timeout:
+        return False, "请求超时"
+    except requests.exceptions.ConnectionError:
+        return False, "网络连接失败"
+    except Exception as e:
+        return False, f"验证异常: {str(e)}"
+
+
+def checkin(session: requests.Session) -> tuple:
+    """执行签到"""
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Origin': BASE_URL,
+        'Referer': f"{USER_URL}/",
+        'X-Requested-With': 'XMLHttpRequest',
     }
     
     try:
-        response = requests.post(
-            CHECKIN_URL,
-            headers=headers,
-            cookies=cookies,
-            timeout=30
-        )
-        result = response.json()
-        ret = result.get("ret")
-        msg = result.get("msg", "")
+        resp = session.post(CHECKIN_URL, headers=headers, timeout=15)
+        result = resp.json()
+        
+        ret = result.get('ret', -1)
+        msg = result.get('msg', '')
         
         if ret == 1:
-            print(f"✅ 签到成功: {msg}")
-            return True, msg
+            return True, f"签到成功: {msg}"
+        elif ret == 0:
+            if '已经签到' in msg or 'already' in msg.lower():
+                return True, f"今日已签到: {msg}"
+            return False, f"签到失败: {msg}"
         else:
-            print(f"⚠️  签到失败: {msg or '未知错误'}")
-            return False, msg or "签到失败"
+            return False, f"未知响应 (ret={ret}): {msg}"
     except Exception as e:
-        print(f"❌ 请求异常: {str(e)}")
-        return False, str(e)
+        return False, f"请求异常: {str(e)}"
 
 
-# ==================== 主流程 ====================
 def main():
-    print("=" * 50)
-    print("🚀 ikuuu.win 青龙面板签到脚本")
-    print("=" * 50)
+    print("=" * 60)
+    print("🚀 ikuuu.win 青龙面板签到脚本 (Cookie 模式)")
+    print(f"🌐 域名: {BASE_URL}")
+    print("=" * 60)
     
-    accounts = load_accounts()
+    accounts = load_cookies()
     total = len(accounts)
     success_count = 0
     fail_count = 0
     
-    for i, account in enumerate(accounts, 1):
-        email = account["email"]
-        password = account["password"]
+    for account in accounts:
+        idx = account["index"]
+        raw_cookie = account["cookie"]
         
-        print(f"\n📋 [{i}/{total}] 处理账号: {email}")
+        print(f"\n📋 [{idx}/{total}] 处理账号...")
         
-        # 登录
-        cookies = login(email, password)
-        if not cookies:
+        # 解析 Cookie
+        cookies_dict = parse_cookie(raw_cookie)
+        display_email = mask_email(cookies_dict)
+        print(f"👤 账号: {display_email}")
+        
+        # 构建 Session
+        session = requests.Session()
+        session.cookies.update(cookies_dict)
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        })
+        
+        # 验证 Cookie
+        print("🔍 验证 Cookie...")
+        valid, diagnostic = validate_cookie(session)
+        if not valid:
+            print(f"❌ Cookie 验证失败: {diagnostic}")
             fail_count += 1
             continue
+        print(f"✅ Cookie 有效")
         
-        # 签到（等待 2-3 秒避免限流）
-        if i > 1:
-            sleep_random(2000, 3000)
+        # 随机延迟（避免同一时间签到）
+        if idx > 1:
+            delay = random.uniform(2, 5)
+            print(f"⏱️  等待 {delay:.1f} 秒...")
+            time.sleep(delay)
         
-        success, msg = checkin(cookies)
-        if success:
+        # 执行签到
+        print("📝 执行签到...")
+        signed, msg = checkin(session)
+        if signed:
+            print(f"✅ {msg}")
             success_count += 1
         else:
+            print(f"❌ {msg}")
             fail_count += 1
     
     # 汇总
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 60)
     print(f"📊 签到完成: 成功 {success_count}/{total}, 失败 {fail_count}/{total}")
-    print("=" * 50)
+    print("=" * 60)
     
     # 青龙面板通知
     notify_text = f"ikuuu签到结果\n成功: {success_count}/{total}\n失败: {fail_count}/{total}"

@@ -1,4 +1,2 @@
-# ikuuu 签到脚本 (Cookie 模式)
-# 仅需 requests 库
-
-requests>=2.31.0
+requests>=2.34.2
+playwright>=1.40.0

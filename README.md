@@ -25,9 +25,8 @@
 
 - **2026-06-22** 新增 [NodeSeek 论坛签到](./nodeseek_signin.py)，支持多账号、自动查询近30天签到统计
 - **2026-06-22** 新增 [花木仓每日签到](./huamucang_checkin.py)，支持 Cookie/Token/用户名密码三种认证方式
-- **2026-07-03** 更新 [ikuuu 签到脚本](./ikuuu_checkin.py)，改用 Cookie 模式
-- **2026-07-03** 新增 [anyrouter 签到脚本](./anyrouter_checkin.py)，支持多账号签到
-
+- **2026-07-03** 新增 [anyrouter 签到脚本](./anyrouter/anyrouter_checkin.py)，支持多账号签到
+- **2026-07-25** 重写 [ikuuu 签到脚本](./ikuuu/ikuuu_checkin.py)：移除伪造极验 token（signer.py），改用 Playwright 无头浏览器真实点击过验证码，详见 [ikuuu/README.md](./ikuuu/README.md)
 
 <!-- ... existing code ... -->
 

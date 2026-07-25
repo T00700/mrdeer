@@ -1,103 +1,36 @@
-# ikuuu.win 青龙面板签到脚本 (Cookie 模式)
+# ikuuu 青龙面板签到脚本
 
-使用 Cookie 直接签到，无需验证码。
+自动登录 ikuuu.win 并完成每日签到，支持多账号。
 
-## 文件说明
+## 文件
+- `ikuuu_checkin.py` — 主脚本（Playwright 浏览器过极验验证码 + 签到）
+- `requirements.txt` — 依赖
+- `.env.example` — 环境变量模板
 
-```
-ikuuu/
-├── ikuuu_checkin.py    # 主脚本（Cookie 签到）
-├── requirements.txt    # Python 依赖列表
-└── .env.example        # 环境变量配置模板
-```
+> 极验(GeeTest V4)验证码用 **Playwright 无头浏览器真实点击「点我开始验证」** 通过（旧版伪造 token 会被服务端拒绝）。
 
-## 部署步骤
+## 部署
 
-### 1. 上传文件到青龙面板
+1. 上传 `ikuuu_checkin.py`、`requirements.txt` 到青龙 `ikuuu` 目录。
+2. 安装依赖（容器内执行）：
+   ```bash
+   cd /ql/data/scripts/ikuuu/
+   pip3 install -r requirements.txt
+   playwright install chromium
+   playwright install-deps        # 安装系统库，缺则加
+   ```
+3. 配置环境变量 `IKUUU_ACCOUNTS`：`邮箱:密码`，多账号逗号分隔。
+4. 配置定时任务。
 
-在青龙面板 → **文件管理** 中新建文件夹 `ikuuu`，上传：
-
-- `ikuuu_checkin.py`
-- `requirements.txt`
-
-### 2. 安装依赖
-
-青龙面板 → **依赖管理** → 添加 `requests`
-
-### 3. 获取 Cookie
-
-1. 浏览器登录 ikuuu（`https://ikuuu.win`）
-2. 按 **F12** → 切换到 **Application** 标签
-3. 左侧展开 **Cookies** → 选择 `https://ikuuu.win`
-4. 复制 **Name** 和 **Value** 列的所有键值对
-5. 格式：`email=xxx; expire_in=xxx; ip=xxx; key=xxx; uid=xxx`
-
-例如：
-```
-email=xxx; expire_in=xxx; ip=xxx; key=xxx; uid=xxx
-```
-
-### 4. 配置环境变量
-
-青龙面板 → **环境变量** → 新建：
-
-| 变量名 | 变量值 |
+## 环境变量
+| 变量 | 说明 |
 |---|---|
-| `IKUUU_COOKIE` | 粘贴上面复制的 Cookie 字符串 |
-
-多账号用换行分隔。
-
-### 5. 添加定时任务
-
-青龙面板 → **定时任务** → **添加任务**：
-
-| 项 | 值 |
-|---|---|
-| 名称 | ikuuu签到 |
-| 命令 | `python3 /ql/data/scripts/ikuuu/ikuuu_checkin.py` |
-| 定时规则 | `0 8 * * *`（每天 8:00） |
-| 时区 | Asia/Shanghai |
-
-### 6. 手动测试
-
-```bash
-python3 /ql/data/scripts/ikuuu/ikuuu_checkin.py
-```
-
-## 输出示例
-
-```
-============================================================
-🚀 ikuuu.win 青龙面板签到脚本 (Cookie 模式)
-🌐 域名: https://ikuuu.win
-============================================================
-
-📋 [1/1] 处理账号...
-👤 账号: d****n@gmail.com
-🔍 验证 Cookie...
-✅ Cookie 有效
-📝 执行签到...
-✅ 签到成功: 签到成功
-
-============================================================
-📊 签到完成: 成功 1/1, 失败 0/1
-============================================================
-```
+| `IKUUU_ACCOUNTS` | `email1:pass1,email2:pass2`（必填） |
+| `IKUUU_DOMAIN` | 域名，默认 `ikuuu.win`（可选） |
+| `IKUUU_BROWSER` | `chrome`/`msedge` 指定系统浏览器（可选，默认用 Playwright chromium） |
 
 ## 常见问题
-
-**Q: Cookie 从哪里获取？**
-
-A: 浏览器登录 ikuuu → F12 → **Application** → **Cookies** → `https://ikuuu.win` → 复制所有 Name 和 Value
-
-**Q: 提示 Cookie 已失效？**
-
-A: Cookie 有过期时间，失效后需要重新获取。建议每 1-2 周刷新一次
-
-**Q: 如何刷新 Cookie？**
-
-A: 重新登录 ikuuu，按上述步骤复制新的 Cookie 更新环境变量
-
-**Q: 支持多账号吗？**
-
-A: 支持，在 `IKUUU_COOKIE` 环境变量中用换行分隔多个 Cookie
+- **浏览器启动失败 / 缺系统库**：执行 `playwright install-deps`（或 `playwright install --with-deps chromium`）。
+- **No module named 'playwright'**：未装内核，执行 `playwright install chromium`。
+- **过验证码超时 / 登录未进用户中心**：确认容器可访问 `gcaptcha4.geevisit.com`；如长期不稳可改用 `Backup/` 旧版 Cookie 直签。
+- **登录失败**：检查邮箱密码是否正确、账号是否被封。
